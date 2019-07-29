@@ -52,20 +52,18 @@ class SqueezeAndExcite(nn.Module):
 
         squeeze_channels = channels * se_ratio
         if not squeeze_channels.is_integer():
-            raise ValueError('channels must be divisible by reduction number (default = 4)')
+            raise ValueError('channels must be divisible by 1/ratio')
 
         squeeze_channels = int(squeeze_channels)
-        self.linear1 = nn.Linear(channels, squeeze_channels, bias=True)
+        self.se_reduce = nn.Conv2d(channels, squeeze_channels, 1, 1, 0, bias=True)
         self.non_linear1 = NON_LINEARITY['Swish']
-        self.linear2 = nn.Linear(squeeze_channels, channels, bias=True)
+        self.se_expand = nn.Conv2d(squeeze_channels, channels, 1, 1, 0, bias=True)
         self.non_linear2 = nn.Sigmoid()
 
     def forward(self, x):
-        y = F.avg_pool2d(x, kernel_size=x.size()[2:])
-        y = y.permute(0, 2, 3, 1)
-        y = self.non_linear1(self.linear1(y))
-        y = self.non_linear2(self.linear2(y))
-        y = y.permute(0, 3, 1, 2)
+        y = torch.mean(x, (2, 3), keepdim=True)
+        y = self.non_linear1(self.se_reduce(y))
+        y = self.non_linear2(self.se_expand(y))
         y = x * y
 
         return y
