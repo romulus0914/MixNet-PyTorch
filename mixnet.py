@@ -194,7 +194,7 @@ class MixNet(nn.Module):
         elif net_type == 'mixnet_l':
             config = self.mixnet_m
             stem_channels = 24
-            depth_multiplier = 1.3
+            depth_multiplier *= 1.3
         else:
             raise TypeError('Unsupported MixNet type')
 
