@@ -188,13 +188,16 @@ class MixNet(nn.Module):
         if net_type == 'mixnet_s':
             config = self.mixnet_s
             stem_channels = 16
+            dropout_rate = 0.2
         elif net_type == 'mixnet_m':
             config = self.mixnet_m
             stem_channels = 24
+            dropout_rate = 0.25
         elif net_type == 'mixnet_l':
             config = self.mixnet_m
             stem_channels = 24
             depth_multiplier *= 1.3
+            dropout_rate = 0.25
         else:
             raise TypeError('Unsupported MixNet type')
 
@@ -224,6 +227,7 @@ class MixNet(nn.Module):
 
         self.avgpool = nn.AvgPool2d(input_size//32, stride=1)
         self.classifier = nn.Linear(feature_size, num_classes)
+        self.dropout = nn.Dropout(dropout_rate)
 
         self._initialize_weights()
 
@@ -234,6 +238,7 @@ class MixNet(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
+        x = self.dropout(x)
 
         return x
 
