@@ -101,50 +101,49 @@ class MixNetBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, expand_ratio, non_linear='ReLU', se_ratio=0.0):
         super(MixNetBlock, self).__init__()
 
-        self.expand = (expand_ratio != 1)
-        self.se = (se_ratio != 0.0)
+        expand = (expand_ratio != 1)
+        expand_channels = in_channels * expand_ratio
+        se = (se_ratio != 0.0)
         self.residual_connection = (stride == 1 and in_channels == out_channels)
 
-        expand_channels = in_channels * expand_ratio
+        conv = []
 
-        if self.expand:
+        if expand:
             # expansion phase
-            self.pw_expansion = nn.Sequential(
+            pw_expansion = nn.Sequential(
                 nn.Conv2d(in_channels, expand_channels, 1, 1, 0, bias=False),
                 nn.BatchNorm2d(expand_channels),
                 NON_LINEARITY[non_linear]
             )
+            conv.append(pw_expansion)
 
         # depthwise convolution phase
-        self.dw = nn.Sequential(
+        dw = nn.Sequential(
             MDConv(expand_channels, kernel_size, stride),
             nn.BatchNorm2d(expand_channels),
             NON_LINEARITY[non_linear]
         )
+        conv.append(dw)
 
-        if self.se:
+        if se:
             # squeeze and excite
-            self.squeeze_excite = nn.Sequential(SqueezeAndExcite(expand_channels, se_ratio))
+            squeeze_excite = nn.Sequential(SqueezeAndExcite(expand_channels, se_ratio))
+            conv.append(squeeze_excite)
 
         # projection phase
-        self.pw_projection = nn.Sequential(
+        pw_projection = nn.Sequential(
             nn.Conv2d(expand_channels, out_channels, 1, 1, 0, bias=False),
             nn.BatchNorm2d(out_channels)
         )
+        conv.append(pw_projection)
+
+        self.conv = nn.Sequential(*conv)
 
     def forward(self, x):
-        if self.expand:
-            y = self.pw_expansion(x)
-        y = self.dw(y)
-        if self.se:
-            y = self.squeeze_excite(y)
-        y = self.pw_projection(y)
-
         if self.residual_connection:
-            y += x
-
-        return y
-
+            return x + self.conv(x)
+        else:
+            return self.conv(x)
 
 class MixNet(nn.Module):
     # [in_channels, out_channels, kernel_size, stride, expand_ratio, non_linear, se_ratio]
