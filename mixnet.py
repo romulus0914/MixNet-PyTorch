@@ -134,13 +134,16 @@ class MixNetBlock(nn.Module):
 
     def forward(self, x):
         if self.expand:
-            x = self.pw_expansion(x)
-        x = self.dw(x)
+            y = self.pw_expansion(x)
+        y = self.dw(y)
         if self.se:
-            x = self.squeeze_excite(x)
-        x = self.pw_projection(x)
+            y = self.squeeze_excite(y)
+        y = self.pw_projection(y)
 
-        return x
+        if self.residual_connection:
+            y += x
+
+        return y
 
 
 class MixNet(nn.Module):
