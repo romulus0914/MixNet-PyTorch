@@ -279,8 +279,8 @@ class MixNet(nn.Module):
         self.head_conv = Conv1x1Bn(config[-1][1], feature_size)
 
         self.avgpool = nn.AvgPool2d(input_size//32, stride=1)
-        self.classifier = nn.Linear(feature_size, num_classes)
         self.dropout = nn.Dropout(dropout_rate)
+        self.classifier = nn.Linear(feature_size, num_classes)
 
         self._initialize_weights()
 
@@ -290,8 +290,8 @@ class MixNet(nn.Module):
         x = self.head_conv(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.classifier(x)
         x = self.dropout(x)
+        x = self.classifier(x)
 
         return x
 
